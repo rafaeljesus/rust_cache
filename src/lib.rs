@@ -2,62 +2,78 @@ use rand::seq::SliceRandom;
 use rand::thread_rng;
 use std::collections::HashMap;
 
-#[derive(Debug, PartialEq)]
-pub struct NotFoundError;
+pub struct Entry<K, V> {
+    map: HashMap<K, V>,
+    idx: usize,
+}
 
-pub struct RRCache {
-    map: HashMap<i32, i32>,
-    values: Vec<i32>,
-    size: i32,
+impl<K, V> Entry<K, V>
+where
+    K: std::cmp::Eq + std::hash::Hash,
+{
+    pub fn new(capacity: usize) -> Self {
+        Self {
+            map: HashMap::with_capacity(capacity),
+            idx: 0,
+        }
+    }
 }
 
 // Randomly selects a candidate item and discards it to make space when necessary.
 // This algorithm does not require keeping any information about the access history.
-// For its simplicity, it has been used in ARM processors.
-impl RRCache {
-    pub fn new(size: i32) -> Self {
+pub struct RRCache<K, V> {
+    entry_map: HashMap<K, Entry<K, V>>,
+    keys: Vec<K>,
+}
+
+impl<K, V> RRCache<K, V>
+where
+    K: std::cmp::Eq + std::hash::Hash,
+{
+    pub fn new(capacity: usize) -> Self {
         Self {
-            map: HashMap::with_capacity(size as usize),
-            values: Vec::new(),
-            size: size,
+            entry_map: HashMap::with_capacity(capacity),
+            keys: Vec::new(),
         }
     }
 
     // Time: O(1) | Space: O(n)
-    pub fn set(&mut self, value: i32) -> bool {
-        if let Some(_) = self.map.get(&value) {
-            return false;
+    pub fn set(&mut self, key: K, value: V) -> bool {
+        if self.entry_map.contains_key(&key) {
+            // TODO just update the entry value
+            return true;
         }
-        self.values.push(value);
-        let last_id = self.values.len() - 1;
-        match self.map.insert(value, last_id as i32) {
-            Some(_) => false,
-            None => true,
+        if self.entry_map.len() == self.entry_map.capacity() {
+            let mut rng = thread_rng();
+            let rand_key = match self.keys.choose_mut(&mut rng) {
+                Some(k) => k,
+                None => return false,
+            };
+            let rand_entry = match self.entry_map.get_key_value(&rand_key) {
+                Some((_, entry)) => entry,
+                None => return false,
+            };
+
+            let last_idx = self.keys.len() - 1;
+            self.keys.swap(rand_entry.idx, last_idx);
+            self.keys.pop();
+            self.entry_map.remove(&rand_key);
         }
+        self.keys.push(key);
+        let mut entry = Entry::new(self.entry_map.capacity());
+        entry.map.insert(key, value);
+        entry.idx = self.keys.len() - 1;
+        self.entry_map.insert(key, entry);
+        true
     }
 
     // Time: O(1) | Space: O(1)
-    pub fn get(&mut self, value: i32) -> Result<i32, NotFoundError> {
-        let value = match self.map.get_key_value(&value) {
-            Some((k, _)) => *k,
-            None => return Err(NotFoundError),
+    pub fn get(&mut self, key: K) -> Option<&V> {
+        let entry = match self.entry_map.get(&key) {
+            Some(entry) => entry,
+            None => return None,
         };
-        if self.map.len() > self.size as usize {
-            let mut rng = thread_rng();
-            let rand_value = match self.values.choose(&mut rng) {
-                Some(v) => *v,
-                None => return Err(NotFoundError),
-            };
-            let rand_idx = match self.map.get_key_value(&rand_value) {
-                Some((idx, _)) => idx,
-                None => return Err(NotFoundError),
-            };
-            let last_idx = self.values.len() - 1;
-            self.values.swap(*rand_idx as usize, last_idx);
-            self.values.pop();
-            self.map.remove(&rand_value);
-        }
-        Ok(value)
+        entry.map.get(&key)
     }
 }
 
@@ -68,8 +84,8 @@ mod tests {
     #[test]
     fn rr_cache() {
         let mut rr_cache = RRCache::new(10);
-        assert_eq!(rr_cache.get(1), Err(NotFoundError));
+        assert_eq!(rr_cache.get(1), None);
         assert_eq!(rr_cache.set(1), true);
-        assert_eq!(rr_cache.get(1), Ok(1));
+        assert_eq!(rr_cache.get(1), Some(1));
     }
 }
