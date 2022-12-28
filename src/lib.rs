@@ -2,12 +2,12 @@ use rand::seq::SliceRandom;
 use rand::thread_rng;
 use std::collections::HashMap;
 
-pub struct Entry<K, V> {
-    map: HashMap<K, V>,
+pub struct Entry<'a, K, V> {
+    map: HashMap<&'a K, &'a V>,
     idx: usize,
 }
 
-impl<K, V> Entry<K, V>
+impl<'a, K, V> Entry<'a, K, V>
 where
     K: std::cmp::Eq + std::hash::Hash,
 {
@@ -21,12 +21,12 @@ where
 
 // Randomly selects a candidate item and discards it to make space when necessary.
 // This algorithm does not require keeping any information about the access history.
-pub struct RRCache<K, V> {
-    entry_map: HashMap<K, Entry<K, V>>,
-    keys: Vec<K>,
+pub struct RRCache<'a, K, V> {
+    entry_map: HashMap<&'a K, Entry<'a, K, V>>,
+    keys: Vec<&'a K>,
 }
 
-impl<K, V> RRCache<K, V>
+impl<'a, K, V> RRCache<'a, K, V>
 where
     K: std::cmp::Eq + std::hash::Hash,
 {
@@ -38,18 +38,18 @@ where
     }
 
     // Time: O(1) | Space: O(n)
-    pub fn set(&mut self, key: K, value: V) -> bool {
-        if self.entry_map.contains_key(&key) {
+    pub fn set(&mut self, key: &'a K, value: &'a V) -> bool {
+        if self.entry_map.contains_key(key) {
             // TODO just update the entry value
             return true;
         }
         if self.entry_map.len() == self.entry_map.capacity() {
             let mut rng = thread_rng();
-            let rand_key = match self.keys.choose_mut(&mut rng) {
-                Some(k) => k,
+            let rand_key = match self.keys.choose(&mut rng) {
+                Some(k) => *k,
                 None => return false,
             };
-            let rand_entry = match self.entry_map.get_key_value(&rand_key) {
+            let rand_entry = match self.entry_map.get_key_value(rand_key) {
                 Some((_, entry)) => entry,
                 None => return false,
             };
@@ -57,7 +57,7 @@ where
             let last_idx = self.keys.len() - 1;
             self.keys.swap(rand_entry.idx, last_idx);
             self.keys.pop();
-            self.entry_map.remove(&rand_key);
+            self.entry_map.remove(rand_key);
         }
         self.keys.push(key);
         let mut entry = Entry::new(self.entry_map.capacity());
@@ -68,12 +68,12 @@ where
     }
 
     // Time: O(1) | Space: O(1)
-    pub fn get(&mut self, key: K) -> Option<&V> {
-        let entry = match self.entry_map.get(&key) {
+    pub fn get(&mut self, key: &'a K) -> Option<&V> {
+        let entry = match self.entry_map.get(key) {
             Some(entry) => entry,
             None => return None,
         };
-        entry.map.get(&key)
+        entry.map.get(key).copied()
     }
 }
 
