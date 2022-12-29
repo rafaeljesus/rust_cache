@@ -1,7 +1,6 @@
 use rand::seq::SliceRandom;
 use rand::thread_rng;
 use std::collections::HashMap;
-use std::fmt;
 
 #[derive(Debug)]
 pub struct Entry<'a, K, V> {
@@ -9,22 +8,9 @@ pub struct Entry<'a, K, V> {
     idx: usize,
 }
 
-impl<'a, K, V> fmt::Display for Entry<'a, K, V>
-where
-    K: std::fmt::Debug,
-    V: std::fmt::Debug,
-{
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_struct("Entry")
-            .field("map", &self.map)
-            .field("idx", &self.idx)
-            .finish()
-    }
-}
-
 impl<'a, K, V> Entry<'a, K, V>
 where
-    K: std::cmp::Eq + std::hash::Hash + std::fmt::Display,
+    K: std::cmp::Eq + std::hash::Hash,
 {
     pub fn new(capacity: usize) -> Self {
         Self {
@@ -42,22 +28,9 @@ pub struct RRCache<'a, K, V> {
     keys: Vec<&'a K>,
 }
 
-impl<'a, K, V> fmt::Display for RRCache<'a, K, V>
-where
-    K: std::fmt::Debug,
-    V: std::fmt::Debug,
-{
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_struct("RRCache")
-            .field("entry_map", &self.entry_map)
-            .field("keys", &self.keys)
-            .finish()
-    }
-}
-
 impl<'a, K, V> RRCache<'a, K, V>
 where
-    K: std::cmp::Eq + std::hash::Hash + std::fmt::Display,
+    K: std::cmp::Eq + std::hash::Hash,
 {
     pub fn new(capacity: usize) -> Self {
         Self {
