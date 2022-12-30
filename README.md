@@ -1,2 +1,8 @@
 # rust_cache
-RR, MRU, LRU, LFU caches implemented in rust
+
+Various cache policies implementations:
+- RR
+- Fifo
+- Lifo
+- MRU
+- LRU
