@@ -19,8 +19,9 @@ where
     }
 }
 
-// Randomly selects a candidate item and discards it to make space when necessary.
-// This algorithm does not require keeping any information about the access history.
+/// The random replacement (RR) cache algorithm,
+/// randomly selects a candidate item and discards it to make space when necessary.
+/// This algorithm does not require keeping any information about the access history.
 #[derive(Debug)]
 pub struct RRCache<K, V> {
     entry_map: HashMap<K, Entry<K, V>>,
@@ -38,7 +39,7 @@ where
         }
     }
 
-    // Time: O(1) | Space: O(n)
+    /// Time: O(1) | Space: O(n)
     pub fn set(&mut self, key: K, value: V) -> bool {
         if let Some(entry) = self.entry_map.get_mut(&key) {
             entry.map.insert(key, value);
@@ -68,7 +69,7 @@ where
         true
     }
 
-    // Time: O(1) | Space: O(1)
+    /// Time: O(1) | Space: O(1)
     pub fn get(&mut self, key: K) -> Option<&V> {
         let entry = match self.entry_map.get(&key) {
             Some(entry) => entry,
