@@ -2,7 +2,7 @@
 
 Various cache policies implementations:
 - RR
-- Fifo
-- Lifo
+- FIFO
+- LIFO
 - MRU
 - LRU
